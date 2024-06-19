@@ -22,6 +22,8 @@ use bsp::hal::{
     watchdog::Watchdog,
 };
 
+mod drivers;
+
 #[entry]
 fn main() -> ! {
     info!("Program start");
