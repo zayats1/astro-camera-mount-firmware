@@ -1,5 +1,5 @@
 use embedded_hal::pwm::{self, SetDutyCycle};
-struct Servo<'a, T: SetDutyCycle> {
+pub struct Servo<'a, T: SetDutyCycle> {
     pwm_out: &'a mut T,
     duty_on_zero: u16,
     duty_on_90: u16,
