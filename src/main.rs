@@ -10,7 +10,6 @@ use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
 use drivers::stepper::{self, *};
-use embedded_hal::digital::OutputPin;
 use panic_probe as _;
 
 // Provide an alias for our BSP so we can switch targets quickly.
@@ -65,17 +64,18 @@ fn main() -> ! {
     // If you have a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
     // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
     // in series with the LED.
-    let mut led_pin = pins.led.into_push_pull_output();
-    let mut dir_pin = pins.gpio15.into_push_pull_output();
+    let led_pin = pins.led.into_push_pull_output();
+    let dir_pin = pins.gpio15.into_push_pull_output();
 
-    let stepper = stepper::StepperWithDriver::new(led_pin, dir_pin);
+    let mut stepper = stepper::StepperWithDriver::new(led_pin, dir_pin);
+    stepper.set_dir(Direction::Forward);
 
     loop {
         info!("on!");
-        led_pin.set_high().unwrap();
+        stepper.step();
         delay.delay_ms(500);
         info!("off!");
-        led_pin.set_low().unwrap();
+        stepper.step();
         delay.delay_ms(500);
     }
 }
