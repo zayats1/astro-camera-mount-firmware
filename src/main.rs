@@ -4,9 +4,12 @@
 #![no_std]
 #![no_main]
 
+mod drivers;
+
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
+use drivers::stepper::{self, *};
 use embedded_hal::digital::OutputPin;
 use panic_probe as _;
 
@@ -21,8 +24,6 @@ use bsp::hal::{
     sio::Sio,
     watchdog::Watchdog,
 };
-
-mod drivers;
 
 #[entry]
 fn main() -> ! {
@@ -65,6 +66,9 @@ fn main() -> ! {
     // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
     // in series with the LED.
     let mut led_pin = pins.led.into_push_pull_output();
+    let mut dir_pin = pins.gpio15.into_push_pull_output();
+
+    let stepper = stepper::StepperWithDriver::new(led_pin, dir_pin);
 
     loop {
         info!("on!");
