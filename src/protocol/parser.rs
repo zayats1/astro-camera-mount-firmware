@@ -10,7 +10,7 @@ pub struct ParsingError;
 
 impl fmt::Display for ParsingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Can't parse tthe message")
+        write!(f, "Can't parse the message")
     }
 }
 
