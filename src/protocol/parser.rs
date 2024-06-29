@@ -1,7 +1,5 @@
 use core::fmt;
 
-use heapless::Vec;
-
 use super::{
     message::Message,
     protocol::{ANGLE_PREFIX, EQ_VAL, SEPPARATOR, STEPPER_STEPS_PREFIX, STEPPER_STOP},
