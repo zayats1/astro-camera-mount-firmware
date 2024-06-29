@@ -1,4 +1,4 @@
-use embedded_hal::pwm::{self, SetDutyCycle};
+use embedded_hal::pwm::SetDutyCycle;
 pub struct Servo<'a, T: SetDutyCycle> {
     pwm_out: &'a mut T,
     duty_on_zero: u16,

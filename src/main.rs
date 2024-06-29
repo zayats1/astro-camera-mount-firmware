@@ -6,6 +6,7 @@
 
 mod drivers;
 mod protocol;
+mod tests;
 
 use defmt::*;
 use defmt_rtt as _;
@@ -31,6 +32,7 @@ use rp_pico::{
 };
 
 use embedded_hal_nb::serial::{Read, Write};
+use tests::Tester;
 
 use core::cell::RefCell;
 use critical_section::Mutex;
@@ -124,6 +126,8 @@ fn main() -> ! {
     // is wired correctly.
     uart.write_full_blocking(b"uart_interrupt example started...\n");
 
+    let mut tester = Tester::new(&mut uart);
+    tester.run_tests();
     critical_section::with(|cs| {
         GLOBAL_UART.borrow(cs).replace(Some(uart));
     });
