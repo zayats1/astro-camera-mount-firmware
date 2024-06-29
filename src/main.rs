@@ -1,6 +1,3 @@
-//! Blinks the LED on a Pico board
-//!
-//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
@@ -13,8 +10,6 @@ use defmt_rtt as _;
 use drivers::stepper::{self, *};
 use panic_probe as _;
 
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico::{
     entry,
     hal::{
@@ -31,11 +26,14 @@ use rp_pico::{
     Pins,
 };
 
+use crate::tests::tester::Tester;
 use embedded_hal_nb::serial::{Read, Write};
-use tests::Tester;
 
 use core::cell::RefCell;
 use critical_section::Mutex;
+
+// Time handling traits
+use fugit::RateExtU32;
 
 /// Alias the type for our UART pins to make things clearer.
 type UartPins = (
@@ -48,8 +46,6 @@ type Uart = uart::UartPeripheral<uart::Enabled, pac::UART0, UartPins>;
 
 /// This how we transfer the UART into the Interrupt Handler
 static GLOBAL_UART: Mutex<RefCell<Option<Uart>>> = Mutex::new(RefCell::new(None));
-// Time handling traits
-use fugit::RateExtU32;
 
 #[entry]
 fn main() -> ! {
@@ -82,15 +78,6 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
-    // on-board LED, it might need to be changed.
-    //
-    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead.
-    // One way to do that is by using [embassy](https://github.com/embassy-rs/embassy/blob/main/examples/rp/src/bin/wifi_blinky.rs)
-    //
-    // If you have a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
-    // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
-    // in series with the LED.
     let led_pin = pins.led.into_push_pull_output();
     let dir_pin = pins.gpio15.into_push_pull_output();
 
@@ -145,16 +132,8 @@ fn main() -> ! {
 #[interrupt]
 #[allow(non_snake_case)]
 fn UART0_IRQ() {
-    // This variable is special. It gets mangled by the `#[interrupt]` macro
-    // into something that we can access without the `unsafe` keyword. It can
-    // do this because this function cannot be called re-entrantly. We know
-    // this because the function's 'real' name is unknown, and hence it cannot
-    // be called from the main thread. We also know that the NVIC will not
-    // re-entrantly call an interrupt.
     static mut UART: Option<uart::UartPeripheral<uart::Enabled, pac::UART0, UartPins>> = None;
 
-    // This is one-time lazy initialisation. We steal the variable given to us
-    // via `GLOBAL_UART`.
     if UART.is_none() {
         critical_section::with(|cs| {
             *UART = GLOBAL_UART.borrow(cs).take();
