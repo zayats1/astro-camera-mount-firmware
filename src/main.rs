@@ -109,12 +109,9 @@ fn main() -> ! {
     // has data in it.
     uart.enable_rx_interrupt();
 
-    // Write something to the UART on start-up so we can check the output pin
-    // is wired correctly.
-    uart.write_full_blocking(b"uart_interrupt example started...\n");
-
     let mut tester = Tester::new(&mut uart);
     tester.run_tests();
+
     critical_section::with(|cs| {
         GLOBAL_UART.borrow(cs).replace(Some(uart));
     });
