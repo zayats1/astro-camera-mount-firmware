@@ -38,6 +38,9 @@ mod app {
     // Time handling traits
     use fugit::RateExtU32;
 
+    use rtic_sync::channel::{Receiver, Sender};
+    use rtic_sync::make_channel;
+
     /// Alias the type for our UART pins to make things clearer.
     type UartPins = (
         gpio::Pin<Gpio0, gpio::FunctionUart, gpio::PullNone>,
@@ -118,10 +121,7 @@ mod app {
         Mono::start(pac.TIMER, &pac.RESETS);
         uart.enable_rx_interrupt();
 
-        if let Err(_) = main_task::spawn() {
-            uart.write_full_blocking(b"Error, can`t spawn the task");
-            panic!();
-        }
+        main_task::spawn().unwrap();
         (
             // Initialization of shared resources
             Shared {},
@@ -130,15 +130,25 @@ mod app {
         )
     }
 
+    #[task()]
+    async fn main_task(_ctx: main_task::Context) {
+        stepper_steps::spawn(20).unwrap();
+    }
+
     #[task(local = [stepper])]
-    async fn main_task(ctx: main_task::Context) {
-        loop {
-            ctx.local.stepper.step();
-            Mono::delay(500.millis()).await;
-            ctx.local.stepper.step();
-            Mono::delay(500.millis()).await;
+    async fn stepper_steps(ctx: stepper_steps::Context, steps: i32) {
+        let stepper = ctx.local.stepper;
+        let delay = |time: u64| Mono::delay(time.millis());
+        let speed = 2.0;
+        let delay_val_ms = (1000.0 / speed) as u64;
+
+        // step has two phases
+        for _ in 0..steps * 2 {
+            stepper.step();
+            delay(delay_val_ms).await;
         }
     }
+
     #[task(binds = UART0_IRQ, local = [uart])]
     fn uart0_task(ctx: uart0_task::Context) {
         let uart = ctx.local.uart;
@@ -148,5 +158,8 @@ mod app {
         }
         cortex_m::asm::sev();
     }
+
+    #[task]
+    async fn parse_data(ctx: parse_data::Context, data: &[u8]) {}
 }
 // End of file
