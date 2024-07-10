@@ -2,7 +2,9 @@ use core::fmt;
 
 use super::{
     message::Message,
-    protocol::{ANGLE_PREFIX, EQ_VAL, SEPPARATOR, STEPPER_STEPS_PREFIX, STEPPER_STOP},
+    protocol::{
+        ANGLE_PREFIX, EQ_VAL, SEPPARATOR, STEPPER_SPEED_PREFIX, STEPPER_STEPS_PREFIX, STEPPER_STOP,
+    },
 };
 
 #[derive(PartialEq)]
@@ -35,6 +37,12 @@ pub fn parse(signal: &str) -> Result<Message, ParsingError> {
                 }
                 STEPPER_STOP => {
                     return Ok(Message::StepperStop);
+                }
+
+                STEPPER_SPEED_PREFIX => {
+                    if let Some(speed) = value.parse::<f32>().ok() {
+                        return Ok(Message::StepperMotorSpeed(speed));
+                    }
                 }
                 _ => (),
             }
