@@ -14,6 +14,11 @@ mod app {
     use super::*;
     use drivers::stepper::{self};
 
+    use heapless::Vec;
+    use protocol::{
+        message::{self, Message},
+        parser::parse,
+    };
     use rp_pico::{
         hal::{
             clocks::{init_clocks_and_plls, Clock},
@@ -57,13 +62,17 @@ mod app {
     #[shared]
     struct Shared {}
 
+    const MESSAGES: usize = 1;
     // Local resources to specific tasks (cannot be shared)
     #[local]
     struct Local {
         uart: Uart,
         stepper: Stepper,
+        sender: Sender<'static, Message, MESSAGES>,
+        receiver: Receiver<'static, Message, MESSAGES>,
     }
 
+    const CAPACITY: usize = 16;
     #[init]
     fn init(ctx: init::Context) -> (Shared, Local) {
         let mut pac = ctx.device;
@@ -117,6 +126,8 @@ mod app {
 
         rtic::pend(pac::Interrupt::UART0_IRQ);
         // Tell the UART to raise its interrupt line on the NVIC when the RX FIFO
+
+        let (sender, receiver) = make_channel!(Message, MESSAGES);
         // has data in it.
         Mono::start(pac.TIMER, &pac.RESETS);
         uart.enable_rx_interrupt();
@@ -126,13 +137,28 @@ mod app {
             // Initialization of shared resources
             Shared {},
             // Initialization of task local resources
-            Local { uart, stepper },
+            Local {
+                uart,
+                stepper,
+                sender,
+                receiver,
+            },
         )
     }
 
-    #[task()]
-    async fn main_task(_ctx: main_task::Context) {
-        stepper_steps::spawn(20).unwrap();
+    #[task(local = [receiver])]
+    async fn main_task(ctx: main_task::Context) {
+        let reciever = ctx.local.receiver;
+        loop {
+            if let Ok(message) = reciever.recv().await {
+                match message {
+                    Message::StepperMotorRunSteps(steps) => stepper_steps::spawn(steps).unwrap(),
+                    Message::StepperMotorSpeed(_) => todo!(),
+                    Message::ServoAngle(_) => todo!(),
+                    Message::StepperStop => todo!(),
+                }
+            }
+        }
     }
 
     #[task(local = [stepper])]
@@ -149,17 +175,27 @@ mod app {
         }
     }
 
-    #[task(binds = UART0_IRQ, local = [uart])]
+    #[task(binds = UART0_IRQ, local = [uart,sender])]
     fn uart0_task(ctx: uart0_task::Context) {
         let uart = ctx.local.uart;
+        let sender = ctx.local.sender;
 
+        let mut data = Vec::<u8, CAPACITY>::new();
         while let Ok(byte) = uart.read() {
-            let _ = uart.write(byte);
+            // Todo: a proper error handling
+            uart.write(byte).ok();
+            if let Err(_) = data.push(byte) {
+                break;
+            }
         }
+
+        if let Ok(data_string) = core::str::from_utf8(&data) {
+            if let Ok(message) = parse(data_string) {
+                sender.try_send(message).ok();
+            }
+        }
+        data.clear();
         cortex_m::asm::sev();
     }
-
-    #[task]
-    async fn parse_data(ctx: parse_data::Context, data: &[u8]) {}
 }
 // End of file
