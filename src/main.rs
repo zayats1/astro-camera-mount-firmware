@@ -15,10 +15,7 @@ mod app {
     use drivers::stepper::{self};
 
     use heapless::Vec;
-    use protocol::{
-        message::{self, Message},
-        parser::parse,
-    };
+    use protocol::{message::Message, parser::parse};
     use rp_pico::{
         hal::{
             clocks::{init_clocks_and_plls, Clock},
