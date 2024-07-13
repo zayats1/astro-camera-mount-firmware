@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "rp2040-project-template"
+name = "astro-camera-mount-firmware"
 version = "0.0.5"
 license = "MIT OR Apache-2.0"
 
