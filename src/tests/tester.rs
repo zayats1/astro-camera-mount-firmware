@@ -36,14 +36,27 @@ where
         self.tx.write_str("PASSED \n").unwrap();
     }
 
-    fn parse_error_test(&mut self) {
-        let message = "STEPPER:,";
+    fn parse_value_error_test(&mut self) {
+        let message = "STEPS:,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError));
+        self.assert_eq(res, Err(ParsingError::ValueParsingError));
+        self.tx.write_str("PASSED \n").unwrap();
+    }
+    fn parse_not_a_comand_error(&mut self) {
+        let message = "STO:,";
+        let res = parse(message);
+        self.assert_eq(res, Err(ParsingError::NotAComandError));
+        self.tx.write_str("PASSED \n").unwrap();
+    }
 
-        let message = "STO,";
+    fn parse_sepparator_error(&mut self) {
+        let message = "STEPS4,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError));
+        self.assert_eq(res, Err(ParsingError::SepparatorError));
+
+        let message = "STEPS:4";
+        let res = parse(message);
+        self.assert_eq(res, Err(ParsingError::SepparatorError));
 
         self.tx.write_str("PASSED \n").unwrap();
     }
@@ -58,6 +71,8 @@ where
     pub fn run_tests(&mut self) {
         self.parse_servo_test();
         self.parse_stepper_test();
-        self.parse_error_test();
+        self.parse_value_error_test();
+        self.parse_not_a_comand_error();
+        self.parse_sepparator_error();
     }
 }
