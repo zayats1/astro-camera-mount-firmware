@@ -1,3 +1,5 @@
+use core::future::Future;
+
 use embedded_hal::digital::OutputPin;
 
 #[derive(Default, PartialEq)]
@@ -37,6 +39,21 @@ where
                 self.clk_pin.set_low().unwrap_or_default();
                 self.step_phase = true;
             }
+        }
+    }
+
+    pub async fn steps<F, Fut>(&mut self, steps: i32, delay: F)
+    where
+        F: Fn(u64) -> Fut,
+        Fut: Future<Output = ()>,
+    {
+        let speed = 2.0;
+        let delay_val_ms = (1000.0 / speed) as u64;
+
+        // step has two phases
+        for _ in 0..steps * 2 {
+            self.step();
+            delay(delay_val_ms).await;
         }
     }
     pub fn set_dir(&mut self, dir: Direction) {

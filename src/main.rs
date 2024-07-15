@@ -162,14 +162,7 @@ mod app {
     async fn stepper_steps(ctx: stepper_steps::Context, steps: i32) {
         let stepper = ctx.local.stepper;
         let delay = |time: u64| Mono::delay(time.millis());
-        let speed = 2.0;
-        let delay_val_ms = (1000.0 / speed) as u64;
-
-        // step has two phases
-        for _ in 0..steps * 2 {
-            stepper.step();
-            delay(delay_val_ms).await;
-        }
+        stepper.steps(steps, delay).await;
     }
 
     #[task(binds = UART0_IRQ, local = [uart,sender])]
