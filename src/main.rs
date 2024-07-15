@@ -149,7 +149,11 @@ mod app {
         loop {
             if let Ok(message) = reciever.recv().await {
                 match message {
-                    Message::StepperMotorRunSteps(steps) => stepper_steps::spawn(steps).unwrap(),
+                    Message::StepperMotorRunSteps(steps) => {
+                        if let Err(_) = stepper_steps::spawn(steps) {
+                            continue;
+                        };
+                    }
                     Message::StepperMotorSpeed(_) => todo!(),
                     Message::ServoAngle(_) => todo!(),
                     Message::StepperStop => todo!(),
