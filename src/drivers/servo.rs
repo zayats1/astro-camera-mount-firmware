@@ -1,20 +1,19 @@
 use embedded_hal::pwm::SetDutyCycle;
-pub struct Servo<'a, T: SetDutyCycle> {
-    pwm_out: &'a mut T,
+pub struct Servo<T: SetDutyCycle> {
+    pwm_out: T,
     duty_on_zero: u16,
-    duty_on_90: u16,
     duty_per_degree: f32,
     max_angle: f32,
 }
 
-impl<'a, T: SetDutyCycle> Servo<'a, T> {
-    pub fn new(pwm_out: &'a mut T, duty_on_zero: u16, max_angle: f32) -> Self {
-        let duty_on_90 = duty_on_zero * 3;
+impl<T: SetDutyCycle> Servo<T> {
+    pub fn new(pwm_out: T, period: u8, max_angle: f32) -> Self {
+        let duty_on_zero = u16::MAX / period as u16; // servo pulse range
+        let duty_on_90 = duty_on_zero / 2 * 3;
         let duty_per_degree = (duty_on_90 - duty_on_zero) as f32 / 90.0;
         Self {
             pwm_out,
             duty_on_zero,
-            duty_on_90,
             duty_per_degree,
             max_angle,
         }

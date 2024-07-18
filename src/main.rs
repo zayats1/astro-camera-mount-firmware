@@ -12,12 +12,16 @@ rp2040_timer_monotonic!(Mono);
 #[rtic::app(device = rp_pico::hal::pac)]
 mod app {
     use super::*;
-    use drivers::stepper::{self};
+    use drivers::{
+        servo::Servo,
+        stepper::{self},
+    };
 
     use heapless::Vec;
     use protocol::{message::Message, parser::parse};
     use rp_pico::{
         hal::{
+            self,
             clocks::{init_clocks_and_plls, Clock},
             gpio::{
                 self,
@@ -55,6 +59,9 @@ mod app {
     >;
     /// Alias the type for our UART to make things clearer.
     type Uart = uart::UartPeripheral<uart::Enabled, pac::UART0, UartPins>;
+    type MyServo = Servo<
+        hal::pwm::Channel<hal::pwm::Slice<hal::pwm::Pwm1, hal::pwm::FreeRunning>, hal::pwm::B>,
+    >;
 
     #[shared]
     struct Shared {}
@@ -66,6 +73,7 @@ mod app {
         uart: Uart,
         stepper: Stepper,
         sender: Sender<'static, Message, MESSAGES>,
+        servo: MyServo,
         receiver: Receiver<'static, Message, MESSAGES>,
     }
 
@@ -129,6 +137,19 @@ mod app {
         Mono::start(pac.TIMER, &pac.RESETS);
         uart.enable_rx_interrupt();
 
+        let mut servo_pwm = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS).pwm1;
+
+        let pwm_period = 20u8; //20ms or 50 hz
+        servo_pwm.set_ph_correct();
+        servo_pwm.set_div_int(pwm_period);
+        servo_pwm.enable();
+
+        let mut channel = servo_pwm.channel_b;
+        channel.output_to(pins.gpio3);
+
+        let servo_max_angle = 180.0;
+        let servo = Servo::new(channel, pwm_period, servo_max_angle);
+
         main_task::spawn().unwrap();
         (
             // Initialization of shared resources
@@ -138,24 +159,26 @@ mod app {
                 uart,
                 stepper,
                 sender,
+                servo,
                 receiver,
             },
         )
     }
 
-    #[task(local = [receiver])]
+    #[task(local = [receiver,servo])]
     async fn main_task(ctx: main_task::Context) {
         let reciever = ctx.local.receiver;
+        let servo = ctx.local.servo;
         loop {
             if let Ok(message) = reciever.recv().await {
                 match message {
                     Message::StepperMotorRunSteps(steps) => {
-                        if let Err(_) = stepper_steps::spawn(steps) {
+                        if stepper_steps::spawn(steps).is_err() {
                             continue;
-                        };
+                        }
                     }
                     Message::StepperMotorSpeed(_) => todo!(),
-                    Message::ServoAngle(_) => todo!(),
+                    Message::ServoAngle(angle) => servo.set_angle(angle),
                     Message::StepperStop => todo!(),
                 }
             }
