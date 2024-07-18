@@ -68,7 +68,7 @@ where
         match self.direction {
             Direction::Forward => self.dir_pin.set_high().unwrap_or_default(),
             Direction::Backward => self.dir_pin.set_low().unwrap_or_default(),
-            Direction::Stop => self.speed = 0.0,
+            Direction::Stop => (),
         }
     }
 }
