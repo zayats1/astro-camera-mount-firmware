@@ -52,7 +52,7 @@ where
             if self.direction == Direction::Stop {
                 break;
             }
-            if self.speed != 0.0 {
+            if self.speed > 0.0 {
                 let delay_val_ms = (1000.0 / self.speed) as u64;
                 self.clk_pin.set_high().unwrap_or_default();
                 delay(delay_val_ms).await;
