@@ -54,7 +54,7 @@ mod app {
     );
 
     type Stepper = StepperWithDriver<
-        gpio::Pin<gpio::bank0::Gpio25, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
+        gpio::Pin<gpio::bank0::Gpio14, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
         gpio::Pin<gpio::bank0::Gpio15, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
     >;
     /// Alias the type for our UART to make things clearer.
@@ -105,7 +105,7 @@ mod app {
             &mut pac.RESETS,
         );
 
-        let led_pin = pins.led.into_push_pull_output();
+        let led_pin = pins.gpio14.into_push_pull_output();
         let dir_pin = pins.gpio15.into_push_pull_output();
 
         let mut stepper = stepper::StepperWithDriver::new(led_pin, dir_pin);
