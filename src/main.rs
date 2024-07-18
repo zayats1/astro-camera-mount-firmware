@@ -165,29 +165,29 @@ mod app {
         )
     }
 
-    #[task(local = [receiver,servo])]
+    #[task(local = [receiver,servo,stepper])]
     async fn main_task(ctx: main_task::Context) {
         let reciever = ctx.local.receiver;
         let servo = ctx.local.servo;
+        let stepper = ctx.local.stepper;
         loop {
             if let Ok(message) = reciever.recv().await {
                 match message {
                     Message::StepperMotorRunSteps(steps) => {
-                        if stepper_steps::spawn(steps).is_err() {
+                        if stepper_steps::spawn(stepper, steps).is_err() {
                             continue;
                         }
                     }
-                    Message::StepperMotorSpeed(_) => todo!(),
+                    Message::StepperMotorSpeed(speed) => stepper.set_speed(speed),
                     Message::ServoAngle(angle) => servo.set_angle(angle),
-                    Message::StepperStop => todo!(),
+                    Message::StepperStop => stepper.set_dir(Direction::Stop),
                 }
             }
         }
     }
 
-    #[task(local = [stepper])]
-    async fn stepper_steps(ctx: stepper_steps::Context, steps: i32) {
-        let stepper = ctx.local.stepper;
+    #[task()]
+    async fn stepper_steps(_ctx: stepper_steps::Context, stepper: &mut Stepper, steps: i32) {
         let delay = |time: u64| Mono::delay(time.millis());
         stepper.steps(steps, delay).await;
     }
