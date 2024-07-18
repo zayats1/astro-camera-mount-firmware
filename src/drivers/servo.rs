@@ -8,8 +8,8 @@ pub struct Servo<T: SetDutyCycle> {
 
 impl<T: SetDutyCycle> Servo<T> {
     pub fn new(pwm_out: T, period: u8, max_angle: f32) -> Self {
-        let duty_on_zero = u16::MAX / period as u16; // servo pulse range
-        let duty_on_90 = duty_on_zero / 2 * 3;
+        let duty_on_zero = u16::MAX / (period * 2) as u16; // servo pulse range
+        let duty_on_90 = duty_on_zero * 3;
         let duty_per_degree = (duty_on_90 - duty_on_zero) as f32 / 90.0;
         Self {
             pwm_out,
