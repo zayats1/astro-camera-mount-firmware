@@ -43,14 +43,14 @@ where
     fn parse_value_error_test(&mut self) {
         let message = "STEPS:,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError::ValueParsingError));
+        self.assert_eq(res, Err(ParsingError::ValueCanNotBeParsed));
         writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
     #[named]
     fn parse_not_a_comand_error_test(&mut self) {
         let message = "STO:,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError::NotAComandError));
+        self.assert_eq(res, Err(ParsingError::NotAComand));
 
         writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
@@ -59,11 +59,11 @@ where
     fn parse_sepparator_error_test(&mut self) {
         let message = "STEPS4,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError::SepparatorError));
+        self.assert_eq(res, Err(ParsingError::NoSepparator));
 
         let message = "STEPS:4";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError::SepparatorError));
+        self.assert_eq(res, Err(ParsingError::NoSepparator));
 
         writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
