@@ -1,4 +1,5 @@
 use core::fmt::Write;
+use function_name::named;
 
 use crate::protocol::{
     message::Message,
@@ -16,14 +17,16 @@ where
     pub fn new(tx: &'a mut T) -> Self {
         Self { tx }
     }
+    #[named]
     fn parse_servo_test(&mut self) {
         let message = "ANGLE:90,";
         let res = parse(message);
         self.assert_eq(res, Ok(Message::ServoAngle(90.0)));
 
-        self.tx.write_str("PASSED \n").unwrap();
+        writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
 
+    #[named]
     fn parse_stepper_test(&mut self) {
         let message = "STEPS:25,";
         let res = parse(message);
@@ -33,19 +36,36 @@ where
         let res = parse(message);
         self.assert_eq(res, Ok(Message::StepperStop));
 
-        self.tx.write_str("PASSED \n").unwrap();
+        writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
 
-    fn parse_error_test(&mut self) {
-        let message = "STEPPER:,";
+    #[named]
+    fn parse_value_error_test(&mut self) {
+        let message = "STEPS:,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError));
-
-        let message = "STO,";
+        self.assert_eq(res, Err(ParsingError::ValueParsingError));
+        writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
+    }
+    #[named]
+    fn parse_not_a_comand_error_test(&mut self) {
+        let message = "STO:,";
         let res = parse(message);
-        self.assert_eq(res, Err(ParsingError));
+        self.assert_eq(res, Err(ParsingError::NotAComandError));
 
-        self.tx.write_str("PASSED \n").unwrap();
+        writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
+    }
+
+    #[named]
+    fn parse_sepparator_error_test(&mut self) {
+        let message = "STEPS4,";
+        let res = parse(message);
+        self.assert_eq(res, Err(ParsingError::SepparatorError));
+
+        let message = "STEPS:4";
+        let res = parse(message);
+        self.assert_eq(res, Err(ParsingError::SepparatorError));
+
+        writeln!(&mut self.tx, "{}: PASSED", function_name!()).unwrap();
     }
 
     fn assert_eq<U: PartialEq>(&mut self, res: U, expected: U) {
@@ -58,6 +78,8 @@ where
     pub fn run_tests(&mut self) {
         self.parse_servo_test();
         self.parse_stepper_test();
-        self.parse_error_test();
+        self.parse_value_error_test();
+        self.parse_not_a_comand_error_test();
+        self.parse_sepparator_error_test();
     }
 }
