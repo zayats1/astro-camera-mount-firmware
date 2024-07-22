@@ -1,10 +1,10 @@
 use core::fmt;
 
 use super::{
-    message::Message,
-    protocol::{
+    comands::{
         ANGLE_PREFIX, EQ_VAL, SEPPARATOR, STEPPER_SPEED_PREFIX, STEPPER_STEPS_PREFIX, STEPPER_STOP,
     },
+    message::Message,
 };
 
 #[derive(PartialEq)]
@@ -56,12 +56,8 @@ pub fn parse(signal: &str) -> Result<Message, ParsingError> {
                 Err(ParsingError::ValueParsingError)
             }
         }
-        STEPPER_STOP => {
-            Ok(Message::StepperStop)
-        }
-        _ => {
-            Err(ParsingError::NotAComandError)
-        }
+        STEPPER_STOP => Ok(Message::StepperStop),
+        _ => Err(ParsingError::NotAComandError),
     }
 }
 
