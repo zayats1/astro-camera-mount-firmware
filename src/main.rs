@@ -201,7 +201,7 @@ mod app {
         while let Ok(byte) = uart.read() {
             // Todo: a proper error handling
             uart.write(byte).ok();
-            if let Err(_) = data.push(byte) {
+            if data.push(byte).is_err() {
                 break;
             }
         }
