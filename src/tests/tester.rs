@@ -3,7 +3,7 @@ use function_name::named;
 
 use crate::protocol::{
     message::Message,
-    parser::{parse, ParsingError},
+    parser::{ParsingError, parse},
 };
 
 pub struct Tester<'a, T: Write> {

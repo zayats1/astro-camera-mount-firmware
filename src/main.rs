@@ -20,9 +20,10 @@ mod app {
     use heapless::Vec;
     use protocol::{message::Message, parser::parse};
     use rp_pico::{
+        Pins,
         hal::{
             self,
-            clocks::{init_clocks_and_plls, Clock},
+            clocks::{Clock, init_clocks_and_plls},
             gpio::{
                 self,
                 bank0::{Gpio0, Gpio1},
@@ -32,7 +33,6 @@ mod app {
             uart::{self, DataBits, StopBits, UartConfig},
             watchdog::Watchdog,
         },
-        Pins,
     };
 
     use crate::{
