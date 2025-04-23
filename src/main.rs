@@ -26,7 +26,7 @@ mod app {
             clocks::{Clock, init_clocks_and_plls},
             gpio::{
                 self,
-                bank0::{Gpio0, Gpio1},
+                bank0::{Gpio0, Gpio1, Gpio16, Gpio17},
             },
             pac::{self},
             sio::Sio,
@@ -49,13 +49,13 @@ mod app {
 
     /// Alias the type for our UART pins to make things clearer.
     type UartPins = (
-        gpio::Pin<Gpio0, gpio::FunctionUart, gpio::PullNone>,
-        gpio::Pin<Gpio1, gpio::FunctionUart, gpio::PullNone>,
+        gpio::Pin<Gpio16, gpio::FunctionUart, gpio::PullNone>,
+        gpio::Pin<Gpio17, gpio::FunctionUart, gpio::PullNone>,
     );
 
     type Stepper = StepperWithDriver<
-        gpio::Pin<gpio::bank0::Gpio14, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
         gpio::Pin<gpio::bank0::Gpio15, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
+        gpio::Pin<gpio::bank0::Gpio14, gpio::FunctionSio<gpio::SioOutput>, gpio::PullDown>,
     >;
     /// Alias the type for our UART to make things clearer.
     type Uart = uart::UartPeripheral<uart::Enabled, pac::UART0, UartPins>;
@@ -105,17 +105,17 @@ mod app {
             &mut pac.RESETS,
         );
 
-        let led_pin = pins.gpio14.into_push_pull_output();
-        let dir_pin = pins.gpio15.into_push_pull_output();
+        let led_pin = pins.gpio15.into_push_pull_output();
+        let dir_pin = pins.gpio14.into_push_pull_output();
 
         let mut stepper = stepper::StepperWithDriver::new(led_pin, dir_pin);
         stepper.set_dir(Direction::Forward);
 
         let uart_pins = (
             // UART TX (characters sent from RP2040) on pin 1 (GPIO0)
-            pins.gpio0.reconfigure(),
+            pins.gpio16.reconfigure(),
             // UART RX (characters received by RP2040) on pin 2 (GPIO1)
-            pins.gpio1.reconfigure(),
+            pins.gpio17.reconfigure(),
         );
 
         // Make a UART on the given pins
