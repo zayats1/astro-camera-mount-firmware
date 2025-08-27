@@ -7,6 +7,7 @@ mod tests;
 
 use panic_halt as _;
 use rtic_monotonics::rp2040::prelude::*;
+
 rp2040_timer_monotonic!(Mono);
 
 #[rtic::app(device = rp_pico::hal::pac)]
