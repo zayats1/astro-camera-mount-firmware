@@ -59,9 +59,9 @@ where
             delay(delay_val_ms).await;
             self.clk_pin.set_low().unwrap_or_default();
             delay(delay_val_ms).await;
-            return steps;
+            steps
         } else {
-            return 0;
+            0
         }
     }
     pub fn set_dir(&mut self, dir: Direction) {

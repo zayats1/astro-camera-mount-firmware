@@ -36,16 +36,14 @@ mod app {
     use rp_pico::{
         Pins,
         hal::{
-            self,
+            self, Sio, Watchdog,
             clocks::{Clock, init_clocks_and_plls},
             gpio::{
                 self,
-                bank0::{Gpio0, Gpio1, Gpio16, Gpio17},
+                bank0::{Gpio16, Gpio17},
             },
-            pac::{self},
-            sio::Sio,
+            pac,
             uart::{self, DataBits, StopBits, UartConfig},
-            watchdog::Watchdog,
         },
     };
 
@@ -217,10 +215,10 @@ mod app {
             }
         }
 
-        if let Ok(data_string) = core::str::from_utf8(&data) {
-            if let Ok(message) = parse(data_string) {
-                sender.try_send(message).ok();
-            }
+        if let Ok(data_string) = core::str::from_utf8(&data)
+            && let Ok(message) = parse(data_string)
+        {
+            sender.try_send(message).ok();
         }
         data.clear();
         cortex_m::asm::sev();
