@@ -189,7 +189,11 @@ mod app {
         loop {
             if let Ok(message) = reciever.recv().await {
                 match message {
-                    Message::StepperMotorRunSteps(_steps) => steps = _steps,
+                    Message::StepperMotorRunSteps(_steps) => {
+                        if steps != 0 {
+                            steps = _steps
+                        }
+                    }
                     Message::StepperMotorSpeed(speed) => stepper.set_speed(speed),
                     Message::ServoAngle(angle) => servo.set_angle(angle),
                     Message::StepperStop => stepper.set_dir(Direction::Stop),
