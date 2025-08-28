@@ -87,6 +87,8 @@ mod app {
         sender: Sender<'static, Message, MESSAGES>,
         servo: MyServo,
         receiver: Receiver<'static, Message, MESSAGES>,
+        stepp_sender: Sender<'static, Message, MESSAGES>,
+        stepp_receiver: Receiver<'static, Message, MESSAGES>,
     }
 
     const CAPACITY: usize = 16;
@@ -145,6 +147,8 @@ mod app {
         // Tell the UART to raise its interrupt line on the NVIC when the RX FIFO
 
         let (sender, receiver) = make_channel!(Message, MESSAGES);
+        let (stepp_sender, stepp_receiver) = make_channel!(Message, MESSAGES);
+        // has data in it.
         // has data in it.
         Mono::start(pac.TIMER, &pac.RESETS);
         uart.enable_rx_interrupt();
@@ -163,6 +167,7 @@ mod app {
         let servo = Servo::new(channel, pwm_period, servo_max_angle);
 
         main_task::spawn().unwrap();
+        stepper_task::spawn().unwrap();
         (
             // Initialization of shared resources
             Shared {},
@@ -173,14 +178,35 @@ mod app {
                 sender,
                 servo,
                 receiver,
+                stepp_sender,
+                stepp_receiver,
             },
         )
     }
 
-    #[task(local = [receiver,servo,stepper])]
+    #[task(local = [stepp_sender,receiver,servo])]
     async fn main_task(ctx: main_task::Context) {
         let reciever = ctx.local.receiver;
+        let stepp_sender = ctx.local.stepp_sender;
         let servo = ctx.local.servo;
+
+        loop {
+            if let Ok(message) = reciever.recv().await {
+                match message {
+                    Message::StepperMotorRunSteps(_)
+                    | Message::StepperMotorSpeed(_)
+                    | Message::StepperStop => {
+                        stepp_sender.try_send(message).ok();
+                    }
+                    Message::ServoAngle(angle) => servo.set_angle(angle),
+                }
+            }
+        }
+    }
+
+    #[task(local = [stepp_receiver,stepper])]
+    async fn stepper_task(ctx: stepper_task::Context) {
+        let reciever = ctx.local.stepp_receiver;
         let stepper = ctx.local.stepper;
         let delay = |time: u64| Mono::delay(time.millis());
         let mut steps = 0;
@@ -193,14 +219,13 @@ mod app {
                         }
                     }
                     Message::StepperMotorSpeed(speed) => stepper.set_speed(speed),
-                    Message::ServoAngle(angle) => servo.set_angle(angle),
                     Message::StepperStop => stepper.set_dir(Direction::Stop),
+                    _ => {}
                 }
+                steps = stepper.steps(steps, delay).await;
             }
-            steps = stepper.steps(steps, delay).await;
         }
     }
-
     #[task(binds = UART0_IRQ, local = [uart,sender])]
     fn uart0_task(ctx: uart0_task::Context) {
         let uart = ctx.local.uart;
