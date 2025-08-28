@@ -44,10 +44,11 @@ where
         if steps > 0 {
             self.set_dir(Direction::Forward);
             steps -= 1;
-        } else {
+        } else if steps < 0 {
             self.set_dir(Direction::Backward);
-            steps *= -1;
             steps += 1
+        } else {
+            return 0;
         }
 
         if self.direction == Direction::Stop {
