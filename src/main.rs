@@ -9,6 +9,19 @@ use panic_halt as _;
 use rtic_monotonics::rp2040::prelude::*;
 
 rp2040_timer_monotonic!(Mono);
+/*
+The macro makes a some object to have a static lifetime
+which means it will live as long as the program
+*/
+#[macro_export]
+macro_rules! make_static {
+    ($t:ty,$val:expr) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        #[deny(unused_attributes)]
+        let x = STATIC_CELL.uninit().write(($val));
+        x
+    }};
+}
 
 #[rtic::app(device = rp_pico::hal::pac)]
 mod app {
@@ -171,26 +184,19 @@ mod app {
         let reciever = ctx.local.receiver;
         let servo = ctx.local.servo;
         let stepper = ctx.local.stepper;
+        let delay = |time: u64| Mono::delay(time.millis());
+        let mut steps = 0;
         loop {
             if let Ok(message) = reciever.recv().await {
                 match message {
-                    Message::StepperMotorRunSteps(steps) => {
-                        if stepper_steps::spawn(stepper, steps).is_err() {
-                            continue;
-                        }
-                    }
+                    Message::StepperMotorRunSteps(_steps) => steps = _steps,
                     Message::StepperMotorSpeed(speed) => stepper.set_speed(speed),
                     Message::ServoAngle(angle) => servo.set_angle(angle),
                     Message::StepperStop => stepper.set_dir(Direction::Stop),
                 }
             }
+            steps = stepper.steps(steps, delay).await;
         }
-    }
-
-    #[task()]
-    async fn stepper_steps(_ctx: stepper_steps::Context, stepper: &mut Stepper, steps: i32) {
-        let delay = |time: u64| Mono::delay(time.millis());
-        stepper.steps(steps, delay).await;
     }
 
     #[task(binds = UART0_IRQ, local = [uart,sender])]
