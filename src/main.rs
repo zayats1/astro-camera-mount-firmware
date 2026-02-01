@@ -87,8 +87,8 @@ mod app {
         sender: Sender<'static, Message, MESSAGES>,
         servo: MyServo,
         receiver: Receiver<'static, Message, MESSAGES>,
-        stepp_sender: Sender<'static, Message, MESSAGES>,
-        stepp_receiver: Receiver<'static, Message, MESSAGES>,
+        step_sender: Sender<'static, Message, MESSAGES>,
+        step_receiver: Receiver<'static, Message, MESSAGES>,
     }
 
     const CAPACITY: usize = 16;
@@ -147,7 +147,7 @@ mod app {
         // Tell the UART to raise its interrupt line on the NVIC when the RX FIFO
 
         let (sender, receiver) = make_channel!(Message, MESSAGES);
-        let (stepp_sender, stepp_receiver) = make_channel!(Message, MESSAGES);
+        let (step_sender, step_receiver) = make_channel!(Message, MESSAGES);
         // has data in it.
         // has data in it.
         Mono::start(pac.TIMER, &pac.RESETS);
@@ -178,25 +178,25 @@ mod app {
                 sender,
                 servo,
                 receiver,
-                stepp_sender,
-                stepp_receiver,
+                step_sender,
+                step_receiver,
             },
         )
     }
 
-    #[task(local = [stepp_sender,receiver,servo])]
+    #[task(local = [step_sender,receiver,servo])]
     async fn main_task(ctx: main_task::Context) {
-        let reciever = ctx.local.receiver;
-        let stepp_sender = ctx.local.stepp_sender;
+        let receiver = ctx.local.receiver;
+        let step_sender = ctx.local.step_sender;
         let servo = ctx.local.servo;
 
         loop {
-            if let Ok(message) = reciever.recv().await {
+            if let Ok(message) = receiver.recv().await {
                 match message {
                     Message::StepperMotorRunSteps(_)
                     | Message::StepperMotorSpeed(_)
                     | Message::StepperStop => {
-                        stepp_sender.try_send(message).ok();
+                        step_sender.try_send(message).ok();
                     }
                     Message::ServoAngle(angle) => servo.set_angle(angle),
                 }
@@ -204,14 +204,14 @@ mod app {
         }
     }
 
-    #[task(local = [stepp_receiver,stepper])]
+    #[task(local = [step_receiver,stepper])]
     async fn stepper_task(ctx: stepper_task::Context) {
-        let reciever = ctx.local.stepp_receiver;
+        let receiver = ctx.local.step_receiver;
         let stepper = ctx.local.stepper;
         let delay = |time: u64| Mono::delay(time.millis());
         let mut steps = 0;
         loop {
-            if let Ok(message) = reciever.recv().await {
+            if let Ok(message) = receiver.recv().await {
                 match message {
                     Message::StepperMotorRunSteps(_steps) => {
                         if steps != 0 {
