@@ -23,7 +23,9 @@ macro_rules! make_static {
     }};
 }
 
-#[rtic::app(device = rp_pico::hal::pac)]
+use rp2040_hal as hal;
+
+#[rtic::app(device = hal::pac)]
 mod app {
     use super::*;
     use drivers::{
@@ -31,21 +33,19 @@ mod app {
         stepper::{self},
     };
 
+    use hal::{
+        self, Sio, Watchdog,
+        clocks::{Clock, init_clocks_and_plls},
+        gpio::{
+            self,
+            bank0::{Gpio16, Gpio17},
+        },
+        pac,
+        uart::{self, DataBits, StopBits, UartConfig},
+    };
     use heapless::Vec;
     use protocol::{message::Message, parser::parse};
-    use rp_pico::{
-        Pins,
-        hal::{
-            self, Sio, Watchdog,
-            clocks::{Clock, init_clocks_and_plls},
-            gpio::{
-                self,
-                bank0::{Gpio16, Gpio17},
-            },
-            pac,
-            uart::{self, DataBits, StopBits, UartConfig},
-        },
-    };
+    use rp2040_hal::gpio::Pins;
 
     use crate::{
         drivers::stepper::{Direction, StepperWithDriver},
@@ -54,8 +54,7 @@ mod app {
     use embedded_hal_nb::serial::{Read, Write};
 
     // Time handling traits
-    use fugit::RateExtU32;
-
+    use hal::fugit::RateExtU32;
     use rtic_sync::channel::{Receiver, Sender};
     use rtic_sync::make_channel;
 
@@ -92,6 +91,11 @@ mod app {
     }
 
     const CAPACITY: usize = 16;
+
+    #[unsafe(link_section = ".boot2")]
+    #[used]
+    pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H; // bootloader for the firmware 
+
     #[init]
     fn init(ctx: init::Context) -> (Shared, Local) {
         let mut pac = ctx.device;
@@ -150,7 +154,7 @@ mod app {
         let (step_sender, step_receiver) = make_channel!(Message, MESSAGES);
         // has data in it.
         // has data in it.
-        Mono::start(pac.TIMER, &pac.RESETS);
+        Mono::start(pac.TIMER, &pac.RESETS, Priority::rtic_default());
         uart.enable_rx_interrupt();
 
         let mut servo_pwm = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS).pwm1;
